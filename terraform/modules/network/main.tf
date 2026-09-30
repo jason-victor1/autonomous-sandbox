@@ -138,3 +138,5 @@ resource "aws_vpc_security_group_egress_rule" "https_outbound" {
   description       = "Restrict egress strictly to internal VPC endpoints on HTTPS"
 }
 
+
+
