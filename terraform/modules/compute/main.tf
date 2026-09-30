@@ -224,7 +224,7 @@ resource "aws_ecs_task_definition" "agent_worker" {
       essential = true
       user      = "10001"
 
-      readonlyRootFilesystem = false
+      readonlyRootFilesystem = true
 
       mountPoints = [
         {
