@@ -35,6 +35,7 @@ jobs:
         with:
           scan-type: "fs"
           scan-ref: "."
+          format: "table"
           scanners: "secret"
           exit-code: "1"
 
@@ -104,15 +105,10 @@ jobs:
           sudo mv conftest /usr/local/bin/
           rm "conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz"
 
-      - name: Print Decoded OIDC Token Claims
-        run: |
-          TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r '.value')
-          python3 -c "import sys, json, base64; p = sys.argv[1].split('.')[1]; p += '=' * (-len(p) % 4); print(json.dumps(json.loads(base64.urlsafe_b64decode(p)), indent=2))" "$TOKEN"
-
       - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::478076837031:role/gh-actions-deployer-role
+          role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE_ARN }}
           aws-region: us-east-1
           audience: sts.amazonaws.com
 
