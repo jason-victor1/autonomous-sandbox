@@ -39,11 +39,9 @@ jobs:
           exit-code: "1"
 
       - name: Checkov Static IaC Scan
-        uses: bridgecrewio/checkov-action@master
-        with:
-          directory: "terraform/"
-          framework: "terraform"
-          soft_fail: false
+        run: |
+          pip install --no-cache-dir checkov
+          checkov -d terraform/ --framework terraform --compact --quiet
 
   # =========================================================================
   # STAGE 2: Supply Chain Security & SBOM Generation
