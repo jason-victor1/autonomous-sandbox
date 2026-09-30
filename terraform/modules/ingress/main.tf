@@ -226,6 +226,7 @@ resource "aws_api_gateway_stage" "live" {
   #checkov:skip=CKV2_AWS_4: "Access logging configured via access_log_settings block"
   #checkov:skip=CKV2_AWS_77: "Log4j AMR rule managed in enterprise WAF baseline; worker is Python runtime"
   #checkov:skip=CKV_AWS_120: "API caching disabled for dynamic POST task ingestion queue"
+  #checkov:skip=CKV2_AWS_51: "Client certificates not applicable; backend integration targets SQS directly via IAM"
   stage_name           = "v1"
   rest_api_id          = aws_api_gateway_rest_api.ingress.id
   deployment_id        = aws_api_gateway_deployment.ingress.id
@@ -233,13 +234,13 @@ resource "aws_api_gateway_stage" "live" {
 
   access_log_settings {
     destination_arn = aws_cloudwatch_log_group.api_logs.arn
-    format          = jsonencode({
+    format = jsonencode({
       requestId   = "$context.requestId"
       ip          = "$context.identity.sourceIp"
-      requestTime = "$context.requestTime"
       httpMethod  = "$context.httpMethod"
       routeKey    = "$context.resourcePath"
       status      = "$context.status"
+      requestTime = "$context.requestTime"
     })
   }
 
@@ -247,6 +248,7 @@ resource "aws_api_gateway_stage" "live" {
     Name = "v1"
   }
 }
+
 
 # Associate WAF with the API Gateway Stage
 resource "aws_wafv2_web_acl_association" "apigw_waf" {
