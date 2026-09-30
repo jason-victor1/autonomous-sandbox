@@ -71,10 +71,13 @@ data "aws_iam_policy_document" "oidc_trust" {
       values   = ["sts.amazonaws.com"]
     }
 
-    condition {
+     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_org}/${var.github_repo}:*"]
+      values = [
+        "repo:jason-victor1*/autonomous-sandbox*:*",
+        "repo:jason-victor1/autonomous-sandbox:*"
+      ]
     }
   }
 }
