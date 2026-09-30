@@ -1,0 +1,125 @@
+name: "Autonomous Sandbox Gate"
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  id-token: write # Required for AWS OIDC authentication
+  contents: read # Required to checkout repository code
+
+jobs:
+  # =========================================================================
+  # STAGE 1: Commodity Hygiene, Secrets & Breaker Testing
+  # =========================================================================
+  static-security:
+    name: "Commodity Scans & Breaker Tests"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python Runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Execute Circuit Breaker Unit Tests
+        run: |
+          python3 tests/test_circuit_breaker.py
+
+      - name: Scan Filesystem for Leaked Secrets
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          scanners: "secret"
+          exit-code: "1"
+
+      - name: Checkov Static IaC Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: "terraform/"
+          framework: "terraform"
+          soft_fail: false
+
+  # =========================================================================
+  # STAGE 2: Supply Chain Security & SBOM Generation
+  # =========================================================================
+  container-security:
+    name: "Artifact Security & SBOM"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Hardened Worker Image
+        run: |
+          docker build -t agent-worker:local src/agent_worker/
+
+      - name: Scan Image for High/Critical CVEs
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "agent-worker:local"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"
+          scanners: "vuln"
+
+      - name: Generate CycloneDX SBOM
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "agent-worker:local"
+          format: "cyclonedx"
+          output: "agent-worker-sbom.json"
+
+      - name: Archive SBOM Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: agent-worker-sbom.json
+
+  # =========================================================================
+  # STAGE 3: Compilation, Architectural Contract & Admission Gate
+  # =========================================================================
+  policy-gate:
+    name: "Plan & Conftest Admission Gate"
+    runs-on: ubuntu-latest
+    needs: [static-security, container-security]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Terraform CLI
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.5"
+
+      - name: Install Conftest Binary
+        run: |
+          CONFTEST_VERSION="0.56.0"
+          curl -LO "https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz"
+          tar xzf "conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz"
+          sudo mv conftest /usr/local/bin/
+          rm "conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz"
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOYMENT_ROLE_ARN }}
+          aws-region: us-east-1
+          audience: sts.amazonaws.com
+
+      - name: Generate Terraform Plan JSON
+        run: |
+          cd terraform/environments/dev
+          terraform init
+          terraform plan -out=tfplan.binary
+          terraform show -json tfplan.binary > tfplan.json
+
+      - name: Enforce Architecture Guardrails (Conftest)
+        run: |
+          conftest test terraform/environments/dev/tfplan.json -p policies/

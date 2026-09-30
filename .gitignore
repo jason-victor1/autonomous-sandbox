@@ -1,0 +1,24 @@
+# Terraform local state and runtime caches
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan*
+tfplan.binary
+tfplan.json
+
+# Lambda packaging artifacts
+*.zip
+src/kill_switch/kill_switch_payload.zip
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# OS and Editor artifacts
+.DS_Store
+.vscode/
+.idea/
