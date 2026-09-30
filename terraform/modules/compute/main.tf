@@ -220,7 +220,7 @@ resource "aws_ecs_task_definition" "agent_worker" {
   container_definitions = jsonencode([
     {
       name      = "agent-worker"
-      image     = "public.ecr.aws/amazonlinux/amazonlinux:latest"
+      image     = "478076837031.dkr.ecr.us-east-1.amazonaws.com/agent-worker:latest"
       essential = true
       user      = "10001"
 
