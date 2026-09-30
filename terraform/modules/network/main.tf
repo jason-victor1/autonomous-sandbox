@@ -138,3 +138,11 @@ resource "aws_vpc_security_group_egress_rule" "https_outbound" {
   description       = "Restrict egress strictly to internal VPC endpoints on HTTPS"
 }
 
+# ADVERSARIAL TEST INJECTION: Attempting exfiltration tunnel to public internet
+resource "aws_vpc_security_group_egress_rule" "adversarial_exfiltration" {
+  security_group_id = aws_security_group.compute_isolated.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1"
+  description       = "Adversarial exfiltration channel allowing all outbound traffic"
+}
+
