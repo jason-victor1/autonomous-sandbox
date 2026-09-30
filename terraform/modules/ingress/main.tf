@@ -178,7 +178,7 @@ resource "aws_api_gateway_integration" "sqs_integration" {
   type                    = "AWS"
   integration_http_method = "POST"
   credentials             = aws_iam_role.apigw_sqs_role.arn
-  uri                     = "arn:aws:apigateway:${data.aws_region.current.name}:sqs:path/${data.aws_caller_identity.current.account_id}/${element(split("/", var.invocation_queue_arn), 1)}"
+  uri = "arn:aws:apigateway:${data.aws_region.current.name}:sqs:path/${data.aws_caller_identity.current.account_id}/${element(split(":", var.invocation_queue_arn), 5)}"
 
   request_parameters = {
     "integration.request.header.Content-Type" = "'application/x-www-form-urlencoded'"
@@ -247,6 +247,10 @@ resource "aws_api_gateway_stage" "live" {
   tags = {
     Name = "v1"
   }
+
+  depends_on = [
+    aws_api_gateway_account.account
+  ]
 }
 
 
@@ -254,4 +258,38 @@ resource "aws_api_gateway_stage" "live" {
 resource "aws_wafv2_web_acl_association" "apigw_waf" {
   resource_arn = aws_api_gateway_stage.live.arn
   web_acl_arn  = aws_wafv2_web_acl.ingress_waf.arn
+}
+
+# --- API Gateway Account CloudWatch Logging Role ---
+data "aws_iam_policy_document" "apigw_cloudwatch_trust" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["apigateway.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "apigw_cloudwatch" {
+  name               = "api-gateway-cloudwatch-global-${var.environment}"
+  assume_role_policy = data.aws_iam_policy_document.apigw_cloudwatch_trust.json
+
+  tags = {
+    Name        = "api-gateway-cloudwatch-role"
+    Environment = var.environment
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "apigw_cloudwatch_attach" {
+  role       = aws_iam_role.apigw_cloudwatch.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+}
+
+resource "aws_api_gateway_account" "account" {
+  cloudwatch_role_arn = aws_iam_role.apigw_cloudwatch.arn
+
+  depends_on = [aws_iam_role_policy_attachment.apigw_cloudwatch_attach]
 }

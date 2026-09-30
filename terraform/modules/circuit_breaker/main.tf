@@ -20,11 +20,11 @@ resource "aws_sqs_queue" "dlq" {
 
 # 2. Main FIFO Queue for tool and agent triggers
 resource "aws_sqs_queue" "agent_tasks" {
-  name                       = "agent-invocation-queue-${var.environment}.fifo"
-  fifo_queue                 = true
+  name                        = "agent-invocation-queue-${var.environment}.fifo"
+  fifo_queue                  = true
   content_based_deduplication = true
-  kms_master_key_id          = var.kms_key_arn
-  visibility_timeout_seconds = 300
+  kms_master_key_id           = var.kms_key_arn
+  visibility_timeout_seconds  = 300
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.dlq.arn
@@ -54,7 +54,7 @@ resource "aws_cloudwatch_event_rule" "kill_switch_rule" {
   event_bus_name = aws_cloudwatch_event_bus.sandbox_bus.name
 
   event_pattern = jsonencode({
-    "source"      : ["sandbox.security", "sandbox.finops"],
+    "source" : ["sandbox.security", "sandbox.finops"],
     "detail-type" : ["CircuitBreakerTripped", "BudgetLimitExceeded"]
   })
 
@@ -95,6 +95,14 @@ resource "aws_iam_role" "kill_switch_role" {
   }
 }
 
+resource "aws_iam_role_policy" "kill_switch_policy" {
+  name   = "circuit-breaker-lambda-execution-policy"
+  role   = aws_iam_role.kill_switch_role.id
+  policy = data.aws_iam_policy_document.kill_switch_perms.json
+}
+
+
+
 # --- Scoped IAM Permissions: Stopping Tasks, Quarantining Agent Role, and X-Ray ---
 data "aws_iam_policy_document" "kill_switch_perms" {
   #checkov:skip=CKV_AWS_111: "Write access strictly scoped to quarantine targeted agent role and tasks"
@@ -125,7 +133,7 @@ data "aws_iam_policy_document" "kill_switch_perms" {
     sid       = "QuarantineAgentRole"
     effect    = "Allow"
     actions   = ["iam:PutRolePolicy"]
-    resources = [var.agent_task_role_arn]
+    resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.agent_task_role_name}"]
   }
 
   statement {
