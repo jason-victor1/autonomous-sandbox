@@ -120,7 +120,8 @@ autonomous-sandbox/
 ├── docs/
 │   ├── adr/
 │   │   └── 001-sandbox-security-architecture.md
-│   └── case-study.md               # Executive business risk and containment study
+│   ├── case-study.md               # Executive business risk and containment study
+│   └── compliance-mapping.md       # NIST SP 800-207, NIST AI RMF, and SOC 2 mapping
 ├── policies/
 │   └── terraform.rego              # Conftest admission rules (no 0.0.0.0/0, mandatory CMK)
 ├── terraform/
