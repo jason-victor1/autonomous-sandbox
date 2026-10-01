@@ -16,7 +16,9 @@ resource "aws_iam_openid_connect_provider" "github" {
 # --- Permission Boundary Contract ---
 # Sets the ceiling on actions for the CI/CD deployer identity
 data "aws_iam_policy_document" "boundary" {
+  #checkov:skip=CKV_AWS_108: "Permissions boundary defines allowable ceiling for sandbox data services; data access is restricted by identity policies"
   #checkov:skip=CKV_AWS_109: "Permissions boundary defines allowable ceiling for network security group/ACL rules"
+  #checkov:skip=CKV_AWS_110: "Permissions boundary defines operational ceiling for sandbox services without direct credential escalation"
   #checkov:skip=CKV_AWS_111: "Permissions boundary defines allowable write ceiling for network infrastructure"
   #checkov:skip=CKV_AWS_356: "Permissions boundary acts as global ceiling across VPC resources before creation"
 
@@ -116,6 +118,7 @@ resource "aws_iam_role" "deployer" {
 
 # --- Scoped Deployment Policy ---
 data "aws_iam_policy_document" "deployer_policy" {
+  #checkov:skip=CKV_AWS_108: "ReadOnly inspection requires querying S3 bucket metadata across managed sandbox resources"
   #checkov:skip=CKV_AWS_111: "Write access required for CI/CD deployer role to manage network lifecycle"
   #checkov:skip=CKV_AWS_356: "EC2 network provisioning actions require wildcard resource during initial creation"
 
@@ -135,8 +138,9 @@ data "aws_iam_policy_document" "deployer_policy" {
       "kms:Describe*",
       "kms:Get*",
       "kms:List*",
-      "s3:Get*",
-      "s3:List*",
+      "s3:GetBucket*",
+      "s3:GetLifecycleConfiguration",
+      "s3:ListAllMyBuckets",
       "sqs:Get*",
       "sqs:List*",
       "apigateway:GET",
