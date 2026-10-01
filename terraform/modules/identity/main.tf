@@ -122,7 +122,7 @@ data "aws_iam_policy_document" "deployer_policy" {
   #checkov:skip=CKV_AWS_111: "Write access required for CI/CD deployer role to manage network lifecycle"
   #checkov:skip=CKV_AWS_356: "EC2 network provisioning actions require wildcard resource during initial creation"
 
-  statement {
+    statement {
     sid    = "ReadOnlyInspection"
     effect = "Allow"
     actions = [
@@ -139,7 +139,9 @@ data "aws_iam_policy_document" "deployer_policy" {
       "kms:Get*",
       "kms:List*",
       "s3:GetBucket*",
+      "s3:GetEncryptionConfiguration",
       "s3:GetLifecycleConfiguration",
+      "s3:ListBucket*",
       "s3:ListAllMyBuckets",
       "sqs:Get*",
       "sqs:List*",
@@ -156,6 +158,7 @@ data "aws_iam_policy_document" "deployer_policy" {
     ]
     resources = ["*"]
   }
+
 
   statement {
     sid    = "TerraformStateBackendAccess"
