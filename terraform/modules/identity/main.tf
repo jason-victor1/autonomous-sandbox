@@ -29,7 +29,27 @@ data "aws_iam_policy_document" "boundary" {
       "ec2:*Route*",
       "ec2:*SecurityGroup*",
       "ec2:*NetworkAcl*",
-      "ec2:*InternetGateway*"
+      "ec2:*InternetGateway*",
+      "ec2:Describe*"
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowedSandboxServices"
+    effect = "Allow"
+    actions = [
+      "ecs:*",
+      "events:*",
+      "lambda:*",
+      "logs:*",
+      "kms:*",
+      "s3:*",
+      "sqs:*",
+      "apigateway:*",
+      "wafv2:*",
+      "iam:Get*",
+      "iam:List*"
     ]
     resources = ["*"]
   }
@@ -46,7 +66,6 @@ data "aws_iam_policy_document" "boundary" {
     resources = ["*"]
   }
 }
-
 
 resource "aws_iam_policy" "boundary" {
   name        = "ci-deployment-permission-boundary"
@@ -71,7 +90,7 @@ data "aws_iam_policy_document" "oidc_trust" {
       values   = ["sts.amazonaws.com"]
     }
 
-     condition {
+    condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
       values = [
@@ -95,7 +114,7 @@ resource "aws_iam_role" "deployer" {
   }
 }
 
-# --- Scoped Deployment Policy for Phase 1 ---
+# --- Scoped Deployment Policy ---
 data "aws_iam_policy_document" "deployer_policy" {
   #checkov:skip=CKV_AWS_111: "Write access required for CI/CD deployer role to manage network lifecycle"
   #checkov:skip=CKV_AWS_356: "EC2 network provisioning actions require wildcard resource during initial creation"
@@ -105,11 +124,49 @@ data "aws_iam_policy_document" "deployer_policy" {
     effect = "Allow"
     actions = [
       "ec2:Describe*",
+      "ecs:Describe*",
+      "ecs:List*",
+      "events:Describe*",
+      "events:List*",
+      "lambda:Get*",
+      "lambda:List*",
+      "logs:Describe*",
+      "logs:List*",
+      "kms:Describe*",
+      "kms:Get*",
+      "kms:List*",
+      "s3:Get*",
+      "s3:List*",
+      "sqs:Get*",
+      "sqs:List*",
+      "apigateway:GET",
+      "wafv2:Get*",
+      "wafv2:List*",
       "iam:GetRole",
+      "iam:GetRolePolicy",
       "iam:GetPolicy",
-      "iam:GetOpenIDConnectProvider"
+      "iam:GetPolicyVersion",
+      "iam:GetOpenIDConnectProvider",
+      "iam:ListRolePolicies",
+      "iam:ListAttachedRolePolicies"
     ]
     resources = ["*"]
+  }
+
+  statement {
+    sid    = "TerraformStateBackendAccess"
+    effect = "Allow"
+    actions = [
+      "s3:ListBucket",
+      "s3:GetBucketLocation",
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject"
+    ]
+    resources = [
+      "arn:aws:s3:::autonomous-sandbox-tfstate-478076837031",
+      "arn:aws:s3:::autonomous-sandbox-tfstate-478076837031/*"
+    ]
   }
 
   statement {
