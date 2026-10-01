@@ -118,8 +118,9 @@ autonomous-sandbox/
 │   └── workflows/
 │       └── pipeline.yml            # CI/CD: Scans, Conftest OPA admission, plan generation
 ├── docs/
-│   └── adr/
-│       └── 001-sandbox-security-architecture.md
+│   ├── adr/
+│   │   └── 001-sandbox-security-architecture.md
+│   └── case-study.md               # Executive business risk and containment study
 ├── policies/
 │   └── terraform.rego              # Conftest admission rules (no 0.0.0.0/0, mandatory CMK)
 ├── terraform/
